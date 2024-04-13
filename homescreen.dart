@@ -1,174 +1,87 @@
-import 'dart:io';
+import 'dart:async';
 
-import 'package:apppurchase/pay.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
-import 'package:provider/provider.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 
-import 'providermodel.dart';
+InAppPurchase _inAppPurchase = InAppPurchase.instance;
+late StreamSubscription<dynamic> _streamSubscription;
+List<ProductDetails> _products = [];
+const _variant = {"Dhruv", "Sutariya"};
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+class AppPayment extends StatefulWidget {
+  const AppPayment({super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<AppPayment> createState() => _AppPaymentState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  late ProviderModel _appProvider;
-
+class _AppPaymentState extends State<AppPayment> {
   @override
   void initState() {
-    final provider = Provider.of<ProviderModel>(context, listen: false);
-    _appProvider = provider;
-
-    SchedulerBinding.instance!.addPostFrameCallback((_) async {
-      initInApp(provider);
-    });
-
+    // TODO: implement initState
     super.initState();
-  }
+    Stream purchaseUpdate = InAppPurchase.instance.purchaseStream;
 
-  initInApp(provider) async {
-    await provider.initInApp();
-  }
-
-  @override
-  void dispose() {
-    if (Platform.isIOS) {
-      var iosPlatformAddition = _appProvider.inAppPurchase
-          .getPlatformAddition<InAppPurchaseIosPlatformAddition>();
-      iosPlatformAddition.setDelegate(null);
-    }
-    _appProvider.subscription.cancel();
-    super.dispose();
+    _streamSubscription = purchaseUpdate.listen((purchaseList) {
+      _listenToPurchase(purchaseList, context);
+    }, onDone: () {
+      _streamSubscription.cancel();
+    }, onError: (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error")),
+      );
+    });
+    initStore();
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<ProviderModel>(context);
-
     return Scaffold(
       appBar: AppBar(
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton(
-                style: ButtonStyle(
-                    backgroundColor:
-                        MaterialStateProperty.all<Color>(Colors.green)),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => PaymentScreen()),
-                  );
-                },
-                child: Text('Pay')),
-          )
-        ],
+        title: Text("In App Purchase"),
       ),
-      body: ListView(
-        padding: EdgeInsets.all(8),
-        children: [
-          Text(
-            'Non Consumable:',
-            style: TextStyle(fontSize: 20),
-          ),
-          Text(
-            !provider.finishedLoad
-                ? ''
-                : provider.removeAds
-                    ? 'You paid for removing Ads.'
-                    : 'You have not paid for removing Ads.',
-            style: TextStyle(
-                color: provider.removeAds ? Colors.green : Colors.grey,
-                fontSize: 20),
-          ),
-          Container(
-            height: 30,
-          ),
-          Text(
-            'Silver Subscription:',
-            style: TextStyle(fontSize: 20),
-          ),
-          Text(
-            !provider.finishedLoad
-                ? ''
-                : provider.silverSubscription
-                    ? 'You have Silver Subscription.'
-                    : 'You have not paid for Silver Subscription.',
-            style: TextStyle(
-                color: provider.silverSubscription ? Colors.green : Colors.grey,
-                fontSize: 20),
-          ),
-          Container(
-            height: 30,
-          ),
-          Text(
-            'Gold Subscription:',
-            style: TextStyle(fontSize: 20),
-          ),
-          Text(
-            !provider.finishedLoad
-                ? ''
-                : provider.goldSubscription
-                    ? 'You have Gold Subscription.'
-                    : 'You have not paid for Gold Subscription.',
-            style: TextStyle(
-                color: provider.goldSubscription ? Colors.green : Colors.grey,
-                fontSize: 20),
-          ),
-          Container(
-            height: 30,
-          ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Purchased consumables:${provider.consumables.length}',
-                  style: TextStyle(fontSize: 20)),
-              _buildConsumableBox(provider),
-            ],
-          )
-        ],
+      body: Center(
+        child: TextButton(
+          onPressed: () {
+            _buy();
+          },
+          child: Text("Pay"),
+        ),
       ),
     );
   }
 
-  Card _buildConsumableBox(provider) {
-    if (provider.loading) {
-      return Card(
-          child: (ListTile(
-              leading: CircularProgressIndicator(),
-              title: Text('Fetching consumables...'))));
-    }
-    if (!provider.isAvailable || provider.notFoundIds.contains(kConsumableId)) {
-      return Card();
-    }
+  initStore() async {
+    ProductDetailsResponse productDetailsResponse =
+        await _inAppPurchase.queryProductDetails(_variant);
 
-    final List<Widget> tokens = provider.consumables.map<Widget>((String id) {
-      return GridTile(
-        child: IconButton(
-          icon: Icon(
-            Icons.stars,
-            size: 42.0,
-            color: Colors.orange,
-          ),
-          splashColor: Colors.yellowAccent,
-          onPressed: () {
-            provider.consume(id);
-          },
-        ),
-      );
-    }).toList();
-    return Card(
-        elevation: 0,
-        child: Column(children: <Widget>[
-          GridView.count(
-            crossAxisCount: 5,
-            children: tokens,
-            shrinkWrap: true,
-          )
-        ]));
+    if (productDetailsResponse.error == null) {
+      setState(() {
+        _products = productDetailsResponse.productDetails;
+      });
+    }
   }
+}
+
+_listenToPurchase(
+    List<PurchaseDetails> purchaseDetailsList, BuildContext context) {
+  purchaseDetailsList.forEach((PurchaseDetails purchaseDetails) async {
+    if (purchaseDetails.status == PurchaseStatus.pending) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Pending")),
+      );
+    } else if (purchaseDetails.status == PurchaseStatus.error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error")),
+      );
+    } else if (purchaseDetails.status == PurchaseStatus.purchased) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Purchased")));
+    }
+  });
+}
+
+_buy() {
+  final PurchaseParam param = PurchaseParam(productDetails: _products[0]);
+  _inAppPurchase.buyConsumable(purchaseParam: param);
 }
