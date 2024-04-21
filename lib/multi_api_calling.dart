@@ -177,3 +177,18 @@ class _PostApiState extends State<PostApi> {
     );
   }
 }
+
+
+
+// void _postData(String param1, String param2) async {
+//     final url = 'https://your-api-endpoint.com'; // Replace with your API endpoint
+//     final response = await http.post(
+//       Uri.parse(url),
+//       headers: <String, String>{
+//         'Content-Type': 'application/json; charset=UTF-8',
+//       },
+//       body: jsonEncode(<String, String>{
+//         'param1': param1,
+//         'param2': param2,
+//       }),
+//     );
