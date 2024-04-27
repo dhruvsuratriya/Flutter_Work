@@ -192,3 +192,73 @@ class _PostApiState extends State<PostApi> {
 //         'param2': param2,
 //       }),
 //     );
+
+
+
+
+
+
+// import 'dart:convert';
+
+// import 'package:flutter/material.dart';
+// import 'package:http/http.dart' as http;
+
+// class HomeScreen extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('Home Screen'),
+//       ),
+//       body: Center(
+//         child: ElevatedButton(
+//           onPressed: () async {
+//             // Make API POST request with user ID
+//             final userId = 'your_user_id_here';
+//             final response = await http.post(
+//               Uri.parse('your_api_endpoint_here'),
+//               body: jsonEncode({'userId': userId}),
+//               headers: {'Content-Type': 'application/json'},
+//             );
+            
+//             if (response.statusCode == 200) {
+//               final responseData = jsonDecode(response.body);
+//               final userId = responseData['userId'];
+
+//               // Navigate to another screen, passing user ID as parameter
+//               Navigator.push(
+//                 context,
+//                 MaterialPageRoute(builder: (context) => OtherScreen(userId)),
+//               );
+//             } else {
+//               // Handle error
+//               print('Error: ${response.statusCode}');
+//             }
+//           },
+//           child: Text('Submit'),
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+// class OtherScreen extends StatelessWidget {
+//   final String userId;
+
+//   OtherScreen(this.userId);
+
+//   @override
+//   Widget build(BuildContext context) {
+//     // Display user ID in the console
+//     print('User ID: $userId');
+
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('Other Screen'),
+//       ),
+//       body: Center(
+//         child: Text('User ID: $userId'),
+//       ),
+//     );
+//   }
+// }
